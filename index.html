@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe Space Breathing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a; 
+            color: white;
+            overflow: hidden; 
+            --transition-duration: 4s;
+            transition: background-color var(--transition-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95);
+            will-change: background-color;
+        }
+
+        .breathing-circle {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            background-color: #172554; 
+            box-shadow: 0 0 60px rgba(30, 58, 138, 0.3), inset 0 0 40px rgba(0, 0, 0, 0.5);
+            transform: scale(1) rotate(0deg);
+            transition: 
+                transform var(--transition-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95),
+                background-color var(--transition-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95),
+                box-shadow var(--transition-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95);
+            will-change: transform, background-color, box-shadow;
+            filter: blur(0.5px);
+        }
+
+        .breathing-circle::before {
+            content: '';
+            position: absolute;
+            inset: -50%; 
+            background: radial-gradient(circle at 50% 15%, rgba(191, 219, 254, 0.5) 0%, rgba(96, 165, 250, 0.2) 30%, rgba(23, 37, 84, 0.0) 60%);
+            opacity: 1;
+            transition: opacity var(--transition-duration) ease-in-out;
+            z-index: 1; 
+            pointer-events: none;
+        }
+
+        .breathing-circle::after {
+            content: '';
+            position: absolute;
+            inset: -50%; 
+            background: radial-gradient(circle at 50% 15%, rgba(167, 243, 208, 0.6) 0%, rgba(52, 211, 153, 0.3) 30%, rgba(6, 78, 59, 0.0) 60%);
+            opacity: 0;
+            transition: opacity var(--transition-duration) ease-in-out;
+            z-index: 1; 
+            pointer-events: none;
+        }
+
+        .phase-inhale {
+            background-color: #064e3b; 
+            box-shadow: 0 0 100px rgba(52, 211, 153, 0.25), inset 0 0 30px rgba(6, 78, 59, 0.6);
+        }
+        .phase-inhale::before { opacity: 0; } 
+        .phase-inhale::after { opacity: 1; }
+        
+        .phase-hold {
+            background-color: #064e3b; 
+            box-shadow: 0 0 120px rgba(52, 211, 153, 0.35), inset 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        .phase-hold::before { opacity: 0; }
+        .phase-hold::after { opacity: 1; }
+        
+        .phase-exhale {
+            background-color: #172554; 
+            box-shadow: 0 0 50px rgba(59, 130, 246, 0.2), inset 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+        .phase-exhale::before { opacity: 1; }
+        .phase-exhale::after { opacity: 0; }
+        
+        .btn-feeling {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .btn-feeling:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+        .btn-feeling.selected {
+            background: #10b981; 
+            color: #022c22;
+            border-color: #10b981;
+            font-weight: 600;
+        }
+
+        .btn-start {
+            background: #4f46e5;
+            box-shadow: 0 4px 25px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn-start:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+        .btn-start:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center h-screen w-full relative">
+
+    <!-- Start Overlay -->
+    <div id="startOverlay" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900 transition-opacity duration-1000">
+        <h1 class="text-4xl md:text-5xl font-light mb-2 text-white tracking-widest uppercase opacity-90">Safe Space</h1>
+        <p class="text-slate-400 mb-8 text-xs uppercase tracking-[0.2em]">Trauma-Informed Regulation</p>
+
+        <!-- Feeling Selection Grid -->
+        <div class="w-full max-w-md px-6 mb-8">
+            <p class="text-center text-slate-300 mb-5 font-light text-lg">How is your body feeling?</p>
+            <div class="grid grid-cols-2 gap-3" id="feelingsGrid">
+                <button class="btn-feeling" onclick="selectFeeling(this, 'Scared')">Scared</button>
+                <button class="btn-feeling" onclick="selectFeeling(this, 'Angry')">Angry</button>
+                <button class="btn-feeling" onclick="selectFeeling(this, 'Anxious')">Anxious</button>
+                <button class="btn-feeling" onclick="selectFeeling(this, 'Sad')">Sad</button>
+                <button class="btn-feeling" onclick="selectFeeling(this, 'Tired')">Tired</button>
+                <button class="btn-feeling" onclick="selectFeeling(this, 'Overwhelmed')">Overwhelmed</button>
+            </div>
+        </div>
+
+        <!-- Generated Mantra Preview -->
+        <div id="mantraPreviewContainer" class="h-24 flex flex-col items-center justify-center px-4 text-center mb-2 opacity-0 transition-opacity">
+            <p id="generatedMantraPreview" class="text-emerald-400 text-lg font-medium italic mb-1"></p>
+        </div>
+
+        <button id="btnBegin" onclick="startSession()" class="btn-start px-12 py-4 rounded-full text-lg font-light tracking-[0.2em] text-white uppercase opacity-50 cursor-not-allowed" disabled>
+            Begin
+        </button>
+    </div>
+    
+    <!-- Closing Modal (Hidden by default) -->
+    <div id="closingModal" class="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm hidden opacity-0 transition-opacity duration-500">
+        <div class="bg-slate-800 p-8 rounded-2xl max-w-sm text-center border border-slate-700 mx-4">
+            <div class="mb-4 text-emerald-400 text-3xl">✨</div>
+            <h3 class="text-xl font-light text-white mb-2 tracking-wide">Reflection</h3>
+            <p id="closingWisdomText" class="text-slate-300 font-light italic leading-relaxed mb-6">
+                <!-- Generated closing text goes here -->
+                Loading insight...
+            </p>
+            <button onclick="resetUI()" class="px-8 py-3 bg-slate-700 hover:bg-slate-600 rounded-full text-sm uppercase tracking-widest transition-colors">
+                Return to Start
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Interface -->
+    <div class="relative z-10 flex flex-col items-center justify-center w-full h-full">
+        <div class="relative flex flex-col items-center justify-center mb-8">
+            <div id="circle" class="breathing-circle"></div>
+        </div>
+
+        <div id="activeMantra" class="absolute bottom-24 w-full text-center px-4">
+            <p class="text-slate-300 font-normal text-xl md:text-2xl tracking-wide opacity-0 transition-opacity duration-1000 max-w-2xl mx-auto"></p>
+        </div>
+
+        <button id="stopBtn" onclick="stopSession()" class="hidden absolute bottom-8 text-slate-600 hover:text-slate-400 transition-colors text-xs uppercase tracking-[0.2em]">
+            End Session
+        </button>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let audioCtx;
+        
+        let oscMain, oscHarmonic, oscSub, masterGain;
+        let currentMantra = "";
+        let closingWisdom = "";
+        let selectedMood = "";
+        let currentRotation = 0; 
+        
+        const apiKey = ""; 
+        const TOTAL_CYCLE_DURATION = 19;
+        
+        const PHASES = [
+            { name: "Breathe In", duration: 4, colorClass: "phase-inhale", scale: 1.5, bgColor: "#0a2220" },
+            { name: "Hold", duration: 7, colorClass: "phase-hold", scale: 1.55, bgColor: "#0a2220" },
+            { name: "Breathe Out", duration: 8, colorClass: "phase-exhale", scale: 1.0, bgColor: "#0f172a" }
+        ];
+
+        // --- 1. Selection & Gemini Logic ---
+
+        function selectFeeling(btn, mood) {
+            document.querySelectorAll('.btn-feeling').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedMood = mood;
+
+            const startBtn = document.getElementById('btnBegin');
+            startBtn.disabled = false;
+            startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            generateMantra(mood);
+        }
+
+        async function generateMantra(mood) {
+            const previewContainer = document.getElementById('mantraPreviewContainer');
+            const previewText = document.getElementById('generatedMantraPreview');
+            
+            previewContainer.classList.remove('opacity-0');
+            previewText.innerText = "Finding a safe thought...";
+            previewText.className = "text-slate-400 text-sm italic animate-pulse";
+
+            // 1. Text Generation
+            const systemPrompt = `You are a gentle, safe helper for a 10-year-old child feeling ${mood}. 
+            Provide ONE very short, grounding sentence (max 6 words) they can repeat silently.
+            Focus on: Safety, Grounding, Strength.
+            Examples: "I am safe here." "My feet are on the ground." "I am okay."`;
+
+            try {
+                // Call Gemini for Text
+                const textResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+                });
+
+                const textResult = await textResponse.json();
+                if (textResult.candidates && textResult.candidates[0].content) {
+                    currentMantra = textResult.candidates[0].content.parts[0].text.trim().replace(/['"]/g, "");
+                    previewText.innerText = currentMantra;
+                    previewText.className = "text-emerald-400 text-lg font-medium italic";
+
+                    // 2. Generate Closing Wisdom in background
+                    generateClosingWisdom(mood);
+                }
+            } catch (error) {
+                console.error("Gemini Text Error:", error);
+                currentMantra = "I am safe.";
+                previewText.innerText = currentMantra;
+            }
+        }
+
+        async function generateClosingWisdom(mood) {
+            closingWisdom = ""; // Reset
+            const systemPrompt = `Generate a very brief, warm closing affirmation (max 1 sentence) for someone who just finished a breathing exercise for feeling ${mood}. Use ✨ emojis sparingly.`;
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+                });
+                const result = await response.json();
+                if (result.candidates) {
+                    closingWisdom = result.candidates[0].content.parts[0].text;
+                }
+            } catch (e) {
+                closingWisdom = "You have done something good for yourself today. ✨";
+            }
+        }
+
+        // --- 2. Advanced "Ohm" Sound Engine ---
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function startContinuousSound() {
+            if (!audioCtx) initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+            oscMain = audioCtx.createOscillator(); oscMain.type = 'sine';
+            oscHarmonic = audioCtx.createOscillator(); oscHarmonic.type = 'sine';
+            oscSub = audioCtx.createOscillator(); oscSub.type = 'triangle'; 
+
+            const mainGain = audioCtx.createGain(); mainGain.gain.value = 0.5;
+            const harmGain = audioCtx.createGain(); harmGain.gain.value = 0.15;
+            const subGain =  audioCtx.createGain(); subGain.gain.value = 0.1;
+
+            oscMain.connect(mainGain).connect(masterGain);
+            oscHarmonic.connect(harmGain).connect(masterGain);
+            oscSub.connect(subGain).connect(masterGain);
+
+            const startFreq = 136.1;
+            oscMain.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
+            oscHarmonic.frequency.setValueAtTime((startFreq * 1.5) + 1, audioCtx.currentTime);
+            oscSub.frequency.setValueAtTime(startFreq * 0.5, audioCtx.currentTime);
+
+            masterGain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 3);
+            oscMain.start(); oscHarmonic.start(); oscSub.start();
+        }
+
+        function modulateSound(phaseName, duration) {
+            if (!oscMain || !audioCtx) return;
+            const now = audioCtx.currentTime;
+            const lowFreq = 136.1; const highFreq = 174.0;
+            
+            function setFrequenciesSmooth(baseFreq, time, timeConstant) {
+                oscMain.frequency.setTargetAtTime(baseFreq, time, timeConstant);
+                oscHarmonic.frequency.setTargetAtTime((baseFreq * 1.5) + 1, time, timeConstant);
+                oscSub.frequency.setTargetAtTime(baseFreq * 0.5, time, timeConstant);
+            }
+
+            if (phaseName === "Breathe In") setFrequenciesSmooth(highFreq, now, duration / 3.5);
+            else if (phaseName === "Hold") setFrequenciesSmooth(highFreq, now, 0.5); 
+            else if (phaseName === "Breathe Out") setFrequenciesSmooth(lowFreq, now, duration / 4);
+        }
+
+        function stopSound() {
+            if (masterGain && audioCtx) {
+                const now = audioCtx.currentTime;
+                masterGain.gain.cancelScheduledValues(now);
+                masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+                masterGain.gain.exponentialRampToValueAtTime(0.001, now + 2);
+                setTimeout(() => {
+                    if (oscMain) oscMain.stop();
+                    if (oscHarmonic) oscHarmonic.stop();
+                    if (oscSub) oscSub.stop();
+                }, 2000);
+            }
+        }
+
+        // --- 3. Core Loop & UI ---
+
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        async function startSession() {
+            if (!currentMantra) currentMantra = "I am safe.";
+
+            const overlay = document.getElementById('startOverlay');
+            const activeMantraP = document.querySelector('#activeMantra p');
+            
+            activeMantraP.innerText = currentMantra;
+            activeMantraP.classList.remove('opacity-0');
+
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.classList.add('hidden'), 1000);
+            document.getElementById('stopBtn').classList.remove('hidden');
+            
+            startContinuousSound();
+            isRunning = true;
+            currentRotation = 0;
+
+            while (isRunning) {
+                for (let i = 0; i < PHASES.length; i++) {
+                    if (!isRunning) break;
+                    await runPhase(PHASES[i]);
+                }
+            }
+        }
+
+        // New Logic: Stop Session shows Modal, ResetUI actually resets
+        function stopSession() {
+            isRunning = false;
+            stopSound();
+            
+            // Show Closing Wisdom
+            const modal = document.getElementById('closingModal');
+            const wisdomText = document.getElementById('closingWisdomText');
+            
+            if (closingWisdom) wisdomText.innerText = closingWisdom;
+            else wisdomText.innerText = "You have taken time for yourself. ✨";
+            
+            modal.classList.remove('hidden');
+            // Trigger reflow
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            
+            document.getElementById('stopBtn').classList.add('hidden');
+        }
+
+        function resetUI() {
+             // Hide Modal
+            const modal = document.getElementById('closingModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 500);
+
+            // Soft Reset
+            const overlay = document.getElementById('startOverlay');
+            const circle = document.getElementById('circle');
+            const activeMantraP = document.querySelector('#activeMantra p');
+            const beginBtn = document.getElementById('btnBegin');
+            const feelingBtns = document.querySelectorAll('.btn-feeling');
+            const mantraPreviewContainer = document.getElementById('mantraPreviewContainer');
+
+            overlay.classList.remove('hidden');
+            void overlay.offsetWidth; 
+            overlay.style.opacity = '1';
+
+            // Reset Visuals
+            circle.className = 'breathing-circle';
+            circle.style.removeProperty('--transition-duration');
+            circle.style.transform = 'scale(1) rotate(0deg)'; 
+            document.body.style.backgroundColor = ''; 
+            currentRotation = 0;
+            
+            // Reset Text
+            activeMantraP.classList.add('opacity-0');
+            setTimeout(() => { activeMantraP.innerText = ''; }, 1000);
+
+            // Reset UI
+            beginBtn.disabled = true;
+            beginBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            feelingBtns.forEach(b => b.classList.remove('selected'));
+            mantraPreviewContainer.classList.add('opacity-0');
+            
+            currentMantra = "";
+            selectedMood = "";
+        }
+
+        async function runPhase(phase) {
+            const circle = document.getElementById('circle');
+            modulateSound(phase.name, phase.duration);
+            document.body.style.setProperty('--transition-duration', `${phase.duration}s`);
+            circle.style.setProperty('--transition-duration', `${phase.duration}s`);
+            document.body.style.backgroundColor = phase.bgColor;
+
+            circle.classList.remove('phase-inhale', 'phase-hold', 'phase-exhale');
+            circle.classList.add(phase.colorClass);
+
+            const rotationIncrement = (phase.duration / TOTAL_CYCLE_DURATION) * 360;
+            currentRotation += rotationIncrement;
+            circle.style.transform = `scale(${phase.scale}) rotate(${currentRotation}deg)`;
+
+            await wait(phase.duration * 1000);
+        }
+    </script>
+</body>
+</html>
