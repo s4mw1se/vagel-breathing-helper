@@ -187,14 +187,15 @@
         let selectedMood = "";
         let currentRotation = 0; 
         
-        const apiKey = ""; 
-        const TOTAL_CYCLE_DURATION = 19;
-        
+        const apiKey = "";
+
         const PHASES = [
             { name: "Breathe In", duration: 4, colorClass: "phase-inhale", scale: 1.5, bgColor: "#0a2220" },
             { name: "Hold", duration: 7, colorClass: "phase-hold", scale: 1.55, bgColor: "#0a2220" },
             { name: "Breathe Out", duration: 8, colorClass: "phase-exhale", scale: 1.0, bgColor: "#0f172a" }
         ];
+
+        const TOTAL_CYCLE_DURATION = PHASES.reduce((sum, phase) => sum + phase.duration, 0);
 
         // --- 1. Selection & Gemini Logic ---
 
@@ -305,16 +306,26 @@
             if (!oscMain || !audioCtx) return;
             const now = audioCtx.currentTime;
             const lowFreq = 136.1; const highFreq = 174.0;
-            
+
+            masterGain.gain.cancelScheduledValues(now);
+            masterGain.gain.setValueAtTime(masterGain.gain.value || 0.08, now);
+
             function setFrequenciesSmooth(baseFreq, time, timeConstant) {
                 oscMain.frequency.setTargetAtTime(baseFreq, time, timeConstant);
                 oscHarmonic.frequency.setTargetAtTime((baseFreq * 1.5) + 1, time, timeConstant);
                 oscSub.frequency.setTargetAtTime(baseFreq * 0.5, time, timeConstant);
             }
 
-            if (phaseName === "Breathe In") setFrequenciesSmooth(highFreq, now, duration / 3.5);
-            else if (phaseName === "Hold") setFrequenciesSmooth(highFreq, now, 0.5); 
-            else if (phaseName === "Breathe Out") setFrequenciesSmooth(lowFreq, now, duration / 4);
+            if (phaseName === "Breathe In") {
+                setFrequenciesSmooth(highFreq, now, duration / 3.5);
+                masterGain.gain.linearRampToValueAtTime(0.18, now + (duration * 0.9));
+            } else if (phaseName === "Hold") {
+                setFrequenciesSmooth(highFreq, now, 0.5);
+                masterGain.gain.setTargetAtTime(0.16, now, 0.25);
+            } else if (phaseName === "Breathe Out") {
+                setFrequenciesSmooth(lowFreq, now, duration / 4);
+                masterGain.gain.linearRampToValueAtTime(0.06, now + duration);
+            }
         }
 
         function stopSound() {
